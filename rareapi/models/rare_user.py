@@ -7,5 +7,5 @@ class RareUser(models.Model):
     user = models.OneToOneField(User, on_delete=CASCADE)
     bio = models.CharField(max_length=50)
     profile_image_url = models.CharField(max_length=100)
-    created_on = models.DateField
-    active = models.BooleanField
+    created_on = models.DateField()
+    active = models.BooleanField()
