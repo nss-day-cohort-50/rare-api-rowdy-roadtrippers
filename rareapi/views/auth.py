@@ -1,10 +1,12 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.db.models.fields import DateTimeField
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rareapi.models import RareUser
+import datetime
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -55,11 +57,11 @@ def register_user(request):
 
     # Now save the extra info in the levelupapi_RareUser table
     rare_user = RareUser.objects.create(
-        bio=request.data['bio'],
+
         user=new_user,
         profile_image_url="",
-        created_on="",
-        active=None
+        created_on=datetime.date.today(),
+        active=True
     )
 
     # Use the REST Framework's token generator on the new user account
