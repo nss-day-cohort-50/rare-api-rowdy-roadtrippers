@@ -121,7 +121,7 @@ class PostView(ViewSet):
         except Exception as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-    @action(methods=['get'], detail=False)
+    # @action(methods=['get'], detail=False)
     def list(self, request):
         """Handle GET requests to posts resource
 
@@ -198,5 +198,5 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = ('id', 'game', 'organizer', 'description', 'date', 'time', 'attendees', 'joined', 'attending_count')
+        fields = ('id', 'title', 'category')
         depth = 1
