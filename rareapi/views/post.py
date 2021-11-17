@@ -14,6 +14,7 @@ import datetime
 
 
 
+
 class PostView(ViewSet):
     """Rare Rowdy RoadTrippers"""
 
@@ -132,10 +133,10 @@ class PostView(ViewSet):
         rare_user = RareUser.objects.get(user=request.auth.user)
         posts = Post.objects.all()
 
-        # Set the `joined` property on every post
-        for post in posts:
-            # Check to see if the rare_user is in the attendees list on the post
-            post.joined = rare_user in post.attendees.all()
+        # # Set the `joined` property on every post
+        # for post in posts:
+        #     # Check to see if the rare_user is in the attendees list on the post
+        #     post.joined = rare_user in post.attendees.all()
 
         # Support filtering posts by post
         post = self.request.query_params.get('postId', None)
@@ -184,6 +185,19 @@ class PostView(ViewSet):
     #         except Exception as ex:
     #             return Response({'message': ex.args[0]})
             
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['first_name', 'last_name', 'username']
+        
+
+class RareUserSerializer(serializers.ModelSerializer):
+    user = UserSerializer(many=False)
+
+    class Meta:
+        model = RareUser
+        fields = ['user']
+
             
 class PostSerializer(serializers.ModelSerializer):
     """JSON serializer for posts
@@ -191,12 +205,12 @@ class PostSerializer(serializers.ModelSerializer):
     Arguments:
         serializer type
     """
-    # organizer = GamerSerializer(many=False)
+    rare_user = RareUserSerializer(many=False)
     # joined = serializers.BooleanField(required=False)
     # game = GameSerializer()
     # attending_count = serializers.IntegerField(default=None)
 
     class Meta:
         model = Post
-        fields = ('id', 'title', 'category')
+        fields = ('id', 'title', 'publication_date', 'image_url', 'content', 'rare_user', 'category')
         depth = 1
