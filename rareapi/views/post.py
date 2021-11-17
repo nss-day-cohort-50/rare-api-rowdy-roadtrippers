@@ -139,9 +139,9 @@ class PostView(ViewSet):
         #     post.joined = rare_user in post.attendees.all()
 
         # Support filtering posts by post
-        post = self.request.query_params.get('postId', None)
+        post = self.request.query_params.get('get_posts_by_user', None)
         if post is not None:
-            posts = posts.filter(post__id=type)
+            posts = posts.filter(rare_user = rare_user)
 
         serializer = PostSerializer(
             posts, many=True, context={'request': request})
