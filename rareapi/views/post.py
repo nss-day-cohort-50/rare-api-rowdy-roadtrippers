@@ -12,7 +12,7 @@ from rareapi.models import Category
 from rest_framework.decorators import action
 import datetime
 
-
+from rareapi.models.comment import Comment
 
 
 class PostView(ViewSet):
@@ -42,8 +42,8 @@ class PostView(ViewSet):
             # and set its properties from what was sent in the
             # body of the request from the client.
             post = Post.objects.create(
-                rare_user = rare_user,
-                category = category,
+                rare_user=rare_user,
+                category=category,
                 title=request.data["title"],
                 publication_date=datetime.date.today(),
                 image_url=request.data["image_url"],
@@ -51,6 +51,41 @@ class PostView(ViewSet):
                 approved=True
             )
             serializer = PostSerializer(post, context={'request': request})
+            return Response(serializer.data)
+
+        # If anything went wrong, catch the exception and
+        # send a response with a 400 status code to tell the
+        # client that something was wrong with its request data
+        except ValidationError as ex:
+            return Response({"reason": ex.message}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['POST'], detail=True)
+    def createComment(self, request, pk=None):
+        """Handle POST operations
+
+        Returns:
+            Response -- JSON serialized game instance
+        """
+
+        # Uses the token passed in the `Authorization` header
+        author = RareUser.objects.get(user=request.auth.user)
+        post = Post.objects.get(pk=pk)
+
+        # Try to save the new game to the database, then
+        # serialize the game instance as JSON, and send the
+        # JSON as a response to the client request
+        try:
+            # Create a new Python instance of the Game class
+            # and set its properties from what was sent in the
+            # body of the request from the client.
+            comment = Comment.objects.create(
+                post=post,
+                author=author,
+                content=request.data["content"],
+                created_on=datetime.date.today()
+            )
+            serializer = CommentSerializer(
+                comment, context={'request': request})
             return Response(serializer.data)
 
         # If anything went wrong, catch the exception and
@@ -72,7 +107,8 @@ class PostView(ViewSet):
             #
             # The `2` at the end of the route becomes `pk`
             post = Post.objects.get(pk=pk)
-            serializer = PostSerializer(post, context={'request': request})
+            serializer = PostDetailSerializer(
+                post, context={'request': request})
             return Response(serializer.data)
         except Exception as ex:
             return HttpResponseServerError(ex)
@@ -121,7 +157,7 @@ class PostView(ViewSet):
 
         except Exception as ex:
             return Response({'message': ex.args[0]}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+
     # @action(methods=['get'], detail=False)
     def list(self, request):
         """Handle GET requests to posts resource
@@ -148,69 +184,56 @@ class PostView(ViewSet):
         return Response(serializer.data)
 
 
-    # @action(methods=['post', 'delete'], detail=True)
-    # def signup(self, request, pk=None):
-    #     """Managing gamers signing up for events"""
-    #     # Django uses the `Authorization` header to determine
-    #     # which user is making the request to sign up
-    #     rare_user = RareUser.objects.get(user=request.auth.user)
-
-    #     try:
-    #         # Handle the case if the client specifies a game
-    #         # that doesn't exist
-    #         post = Post.objects.get(pk=pk)
-    #     except Post.DoesNotExist:
-    #         return Response(
-    #             {'message': 'Event does not exist.'},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-
-    #     # A gamer wants to sign up for an event
-    #     if request.method == "POST":
-    #         try:
-    #             # Using the attendees field on the event makes it simple to add a gamer to the event
-    #             # .add(gamer) will insert into the join table a new row the gamer_id and the event_id
-    #             post.attendees.add(post)
-    #             return Response({}, status=status.HTTP_201_CREATED)
-    #         except Exception as ex:
-    #             return Response({'message': ex.args[0]})
-
-    #     # User wants to leave a previously joined event
-    #     elif request.method == "DELETE":
-    #         try:
-    #             # The many to many relationship has a .remove method that removes the gamer from the attendees list
-    #             # The method deletes the row in the join table that has the gamer_id and event_id
-    #             post.attendees.remove(rare_user)
-    #             return Response(None, status=status.HTTP_204_NO_CONTENT)
-    #         except Exception as ex:
-    #             return Response({'message': ex.args[0]})
-            
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ['first_name', 'last_name', 'username']
-        
+
 
 class RareUserSerializer(serializers.ModelSerializer):
     user = UserSerializer(many=False)
 
     class Meta:
         model = RareUser
-        fields = ['user']
+        fields = ['id', 'user']
 
-            
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = RareUserSerializer(many=False)
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'post', 'author', 'content', 'created_on']
+        depth: 1
+
+
 class PostSerializer(serializers.ModelSerializer):
     """JSON serializer for posts
 
     Arguments:
         serializer type
     """
+
     rare_user = RareUserSerializer(many=False)
-    # joined = serializers.BooleanField(required=False)
-    # game = GameSerializer()
-    # attending_count = serializers.IntegerField(default=None)
 
     class Meta:
         model = Post
-        fields = ('id', 'title', 'publication_date', 'image_url', 'content', 'rare_user', 'category')
+        fields = ('id', 'title', 'publication_date', 'image_url',
+                  'content', 'rare_user', 'category')
+        depth = 1
+
+
+class PostDetailSerializer(serializers.ModelSerializer):
+    """JSON serializer for posts
+
+    Arguments:
+        serializer type
+    """
+    comments = CommentSerializer(many=True)
+    rare_user = RareUserSerializer(many=False)
+
+    class Meta:
+        model = Post
+        fields = ('id', 'title', 'publication_date', 'image_url',
+                  'content', 'rare_user', 'category', 'comments')
         depth = 1
