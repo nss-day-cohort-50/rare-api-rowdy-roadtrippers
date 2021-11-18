@@ -9,6 +9,7 @@ from rareapi.models import Post
 from django.contrib.auth import get_user_model
 from rareapi.models import RareUser
 from rareapi.models import Category
+from rareapi.models import Tag
 from rest_framework.decorators import action
 import datetime
 
